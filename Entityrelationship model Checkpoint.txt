@@ -1,0 +1,68 @@
+Gymnasium Table
+CREATE TABLE Gymnasium (
+    GymnasiumID INT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Address VARCHAR(255) NOT NULL,
+    PhoneNumber VARCHAR(15) NOT NULL
+);
+
+Member Table
+CREATE TABLE Member (
+    MemberID INT PRIMARY KEY AUTO_INCREMENT,
+    LastName VARCHAR(100) NOT NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    Address VARCHAR(255) NOT NULL,
+    DateOfBirth DATE NOT NULL,
+    Gender CHAR(1) NOT NULL,
+    GymnasiumID INT,
+    FOREIGN KEY (GymnasiumID) REFERENCES Gymnasium(GymnasiumID)
+);
+
+Session Table
+CREATE TABLE Session (
+    SessionID INT PRIMARY KEY AUTO_INCREMENT,
+    SportType VARCHAR(100) NOT NULL,
+    Schedule DATETIME NOT NULL,
+    MaxMembers INT NOT NULL,
+    CONSTRAINT CHK_MaxMembers CHECK (MaxMembers <= 20)
+);
+
+Coach Table
+CREATE TABLE Coach (
+    CoachID INT PRIMARY KEY AUTO_INCREMENT,
+    LastName VARCHAR(100) NOT NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    Age INT NOT NULL,
+    Specialty VARCHAR(100) NOT NULL
+);
+ Attends Table (Many-to-Many relationship between Member and Session)
+CREATE TABLE Attends (
+    MemberID INT,
+    SessionID INT,
+    PRIMARY KEY (MemberID, SessionID),
+    FOREIGN KEY (MemberID) REFERENCES Member(MemberID),
+    FOREIGN KEY (SessionID) REFERENCES Session(SessionID)
+);
+ LedBy Table (Many-to-Many relationship between Session and Coach)
+CREATE TABLE LedBy (
+    SessionID INT,
+    CoachID INT,
+    PRIMARY KEY (SessionID, CoachID),
+    FOREIGN KEY (SessionID) REFERENCES Session(SessionID),
+    FOREIGN KEY (CoachID) REFERENCES Coach(CoachID)
+);
+
+Trigger to ensure a coach cannot lead more than two sessions
+DELIMITER $$
+CREATE TRIGGER Coach_Session_Limit
+BEFORE INSERT ON LedBy
+FOR EACH ROW
+BEGIN
+    DECLARE SessionCount INT;
+    SELECT COUNT(*) INTO SessionCount FROM LedBy WHERE CoachID = NEW.CoachID;
+    IF SessionCount >= 2 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A coach cannot lead more than 2 sessions.';
+    END IF;
+END;
+$$
+DELIMITER ;
